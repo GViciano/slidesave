@@ -484,12 +484,7 @@ input[type=text]::placeholder { color: var(--gray-400); }
         <div class="slide-preview-empty" id="attWaiting">Esperando al presentador…</div>
       </div>
 
-      <div class="slide-meta">
-        <span class="slide-meta-left" id="attSlideLabel"></span>
-        <span class="slide-meta-right" id="attSavedLabel"></span>
-      </div>
-
-      <button class="save-btn" id="saveSlideBtn" onclick="saveCurrentSlide()" disabled>
+      <button class="save-btn" id="saveSlideBtn" onclick="saveCurrentSlide()" disabled style="margin-top:.75rem">
         Guardar slide
       </button>
 
@@ -620,12 +615,23 @@ async function captureAndUpload(){
   setTimeout(()=>badge.classList.remove('show'),1800);
 }
 
-function stopSharing(){
+async function stopSharing(){
   clearInterval(ticker);
   if(stream)stream.getTracks().forEach(t=>t.stop());
-  stream=null;ticker=null;prevPixels=null;slideCount=0;
+  stream=null;ticker=null;prevPixels=null;
+
+  const codeToDelete=presCode;
+  const count=slideCount;
+  const name=document.getElementById('presSessionName').textContent;
+  slideCount=0;
+
   document.getElementById('pres-setup').style.display='block';
   document.getElementById('pres-active').style.display='none';
+
+  if(codeToDelete && count>0){
+    const del=confirm(`¿Eliminar la sesión de Firebase?\n\nSe borrarán las ${count} slide${count!==1?'s':''} de "${name}". Los asistentes perderán el acceso.\n\nAceptar = eliminar · Cancelar = conservar`);
+    if(del) await db.ref(`sessions/${codeToDelete}`).remove();
+  }
 }
 
 // ── ASISTENTE ──────────────────────────────────────────────
@@ -654,7 +660,6 @@ function joinSession(){
         const img=document.getElementById('attCurrent');
         img.src=b64; img.style.display='block';
         document.getElementById('attWaiting').style.display='none';
-        document.getElementById('attSlideLabel').textContent=`Slide ${idx+1}`;
         const already=gallery.some(g=>g.slideIdx===idx);
         const btn=document.getElementById('saveSlideBtn');
         btn.disabled=false;
@@ -674,7 +679,6 @@ function saveCurrentSlide(){
   gallery.sort((a,b)=>a.savedOrder-b.savedOrder);
   const btn=document.getElementById('saveSlideBtn');
   btn.textContent='✓ Guardada'; btn.classList.add('saved');
-  document.getElementById('attSavedLabel').textContent=`${gallery.length} guardada${gallery.length!==1?'s':''}`;
   renderGallery();
 }
 
@@ -730,7 +734,6 @@ async function shareImg(b64){
 function clearAll(){
   if(!confirm('¿Borrar todas las slides guardadas?'))return;
   gallery=[];savedCounter=0;
-  document.getElementById('attSavedLabel').textContent='';
   const btn=document.getElementById('saveSlideBtn');
   btn.textContent='Guardar slide'; btn.classList.remove('saved');
   renderGallery();
