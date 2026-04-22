@@ -4,172 +4,526 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SlideSave</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f5f5f3;color:#1a1a1a;min-height:100vh}
-.wrap{max-width:520px;margin:0 auto;padding:1.5rem 1rem 4rem}
-h1{font-size:18px;font-weight:500;margin-bottom:1.25rem}
-.card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;overflow:hidden;margin-bottom:1rem}
-.tabs{display:flex;border-bottom:0.5px solid rgba(0,0,0,0.1)}
-.tab{flex:1;padding:.65rem 1rem;font-size:13px;font-weight:500;text-align:center;cursor:pointer;background:transparent;border:none;color:#888;border-bottom:2px solid transparent;transition:all .15s}
-.tab.active{color:#1a1a1a;border-bottom:2px solid #1a1a1a}
-.panel{display:none;padding:1rem}
-.panel.active{display:block}
-.slide-box{background:#111;border-radius:8px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:.75rem;position:relative}
-.slide-box img,.slide-box video{width:100%;height:100%;object-fit:contain;display:block}
-.empty-label{color:#555;font-size:13px;text-align:center;padding:1rem}
-.btn{display:block;width:100%;padding:12px;font-size:14px;font-weight:500;border-radius:8px;cursor:pointer;border:none;transition:all .15s;text-align:center}
-.btn:hover{opacity:.85}
-.btn:disabled{opacity:.3;cursor:default}
-.btn-black{background:#1a1a1a;color:#fff}
-.btn-gray{background:#f0f0ee;color:#1a1a1a;border:0.5px solid rgba(0,0,0,0.15)}
-.btn-red{background:#fee2e2;color:#991b1b}
-.btn-green{background:#dcfce7;color:#166534;border:0.5px solid #bbf7d0}
-.save-slide-btn{width:100%;padding:14px;font-size:15px;font-weight:500;border-radius:8px;cursor:pointer;border:none;background:#1a1a1a;color:#fff;margin-bottom:.5rem;transition:all .15s}
-.save-slide-btn:hover{background:#333}
-.save-slide-btn:disabled{background:#e8e8e5;color:#aaa;cursor:default}
-.save-slide-btn.saved{background:#166534;color:#fff}
-.row{display:flex;gap:8px;margin-bottom:.75rem}
-.row .btn{flex:1}
-.share-box{background:#f5f5f3;border-radius:8px;padding:.85rem 1rem;margin-top:.75rem}
-.session-code{font-size:36px;font-weight:600;letter-spacing:10px;font-family:'SF Mono','Fira Code',monospace;color:#1a1a1a;margin-bottom:4px}
-.share-hint{font-size:12px;color:#888}
-.live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:5px;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.status-row{display:flex;align-items:center;font-size:12px;color:#666;margin-bottom:.6rem}
-.join-row{display:flex;gap:8px;margin-bottom:.75rem}
-.code-input{flex:1;font-size:22px;text-align:center;letter-spacing:6px;font-family:'SF Mono','Fira Code',monospace;text-transform:uppercase;padding:10px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;color:#1a1a1a}
-.join-btn{padding:0 20px;font-size:14px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:500}
-.hint{font-size:13px;color:#666;margin-bottom:.75rem}
-.err{font-size:13px;color:#c0392b;margin-top:.5rem;display:none}
-.info-box{background:#eff6ff;border:0.5px solid #bfdbfe;border-radius:8px;padding:.65rem .85rem;font-size:12px;color:#1e40af;margin-bottom:.75rem;line-height:1.6}
-.badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:3px 8px;border-radius:20px}
-.new-badge{position:absolute;top:8px;left:8px;background:#22c55e;color:#fff;font-size:11px;padding:3px 8px;border-radius:20px;opacity:0;transition:opacity .3s}
-.new-badge.show{opacity:1}
-.stats-row{display:flex;gap:8px;margin-bottom:.75rem}
-.stat{flex:1;background:#f5f5f3;border-radius:8px;padding:.6rem .75rem;text-align:center}
-.stat-num{font-size:22px;font-weight:600}
-.stat-label{font-size:11px;color:#888;margin-top:2px}
-.slide-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
-.slide-meta span{font-size:13px;color:#666}
-/* Galería */
-.gal-header{display:flex;align-items:center;justify-content:space-between;margin:1rem 0 .6rem}
-.gal-header h3{font-size:14px;font-weight:500}
-.gal-header span{font-size:12px;color:#aaa}
-.gal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
-.gal-item{position:relative;aspect-ratio:16/9;background:#111;border-radius:5px;overflow:hidden;cursor:pointer}
-.gal-item img{width:100%;height:100%;object-fit:contain;display:block}
-.gal-num{position:absolute;bottom:3px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:1px 5px;border-radius:10px}
-.gal-empty{text-align:center;color:#aaa;font-size:13px;padding:2rem 0;grid-column:1/-1}
-.gal-actions{display:flex;gap:8px;margin-top:.75rem;flex-wrap:wrap}
-.gal-actions .btn{flex:1;min-width:100px;padding:10px;font-size:13px}
-/* Modal */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;z-index:200;padding:1rem}
-.overlay.open{display:flex}
-.modal{background:#fff;border-radius:12px;overflow:hidden;width:100%;max-width:480px;position:relative}
-.modal img{width:100%;aspect-ratio:16/9;object-fit:contain;background:#111;display:block}
-.modal-foot{padding:.75rem 1rem;display:flex;gap:8px}
-.modal-foot .btn{flex:1;padding:10px;font-size:13px}
-.modal-close-btn{position:absolute;top:.75rem;right:.75rem;background:rgba(0,0,0,.4);border:none;color:#fff;border-radius:50%;width:30px;height:30px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}
+:root {
+  --black: #0a0a0a;
+  --white: #fafaf8;
+  --gray-100: #f2f2f0;
+  --gray-200: #e4e4e0;
+  --gray-400: #a0a09a;
+  --gray-600: #6b6b65;
+  --green: #1a7a4a;
+  --green-bg: #edf7f2;
+  --red: #c0392b;
+  --red-bg: #fdf2f1;
+  --accent: #0a0a0a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  background: var(--white);
+  color: var(--black);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Layout ── */
+.page { max-width: 440px; margin: 0 auto; padding: 3rem 1.5rem 6rem; }
+
+/* ── Wordmark ── */
+.wordmark {
+  display: flex; align-items: baseline; gap: 6px;
+  margin-bottom: 3rem;
+}
+.wordmark-main {
+  font-family: 'Fraunces', serif;
+  font-size: 22px; font-weight: 300;
+  letter-spacing: -0.5px; color: var(--black);
+}
+.wordmark-main em { font-style: italic; }
+.wordmark-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--black); margin-bottom: 2px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: 2rem;
+}
+.tab {
+  flex: 1; padding: .6rem 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 400;
+  color: var(--gray-400);
+  background: transparent; border: none;
+  border-bottom: 1.5px solid transparent;
+  cursor: pointer; letter-spacing: .01em;
+  transition: color .2s, border-color .2s;
+  margin-bottom: -1px;
+}
+.tab.active { color: var(--black); border-bottom-color: var(--black); }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Section labels ── */
+.section-label {
+  font-size: 10px; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--gray-400); margin-bottom: .75rem;
+}
+
+/* ── Info text ── */
+.info {
+  font-size: 13px; color: var(--gray-600);
+  line-height: 1.65; margin-bottom: 1.5rem;
+}
+
+/* ── Inputs ── */
+.field { margin-bottom: 1.25rem; }
+.field label {
+  display: block; font-size: 11px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--gray-400); margin-bottom: .5rem;
+}
+input[type=text] {
+  width: 100%; padding: 12px 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 300;
+  color: var(--black); background: transparent;
+  border: none; border-bottom: 1px solid var(--gray-200);
+  outline: none; transition: border-color .2s;
+}
+input[type=text]:focus { border-bottom-color: var(--black); }
+input[type=text]::placeholder { color: var(--gray-400); }
+
+/* ── Code input (asistente) ── */
+.code-wrap { display: flex; gap: 12px; margin-bottom: 1.5rem; }
+.code-input {
+  flex: 1; padding: 12px 0;
+  font-family: 'Fraunces', serif;
+  font-size: 28px; font-weight: 300; letter-spacing: 8px;
+  color: var(--black); background: transparent;
+  border: none; border-bottom: 1px solid var(--gray-200);
+  outline: none; text-transform: uppercase;
+  transition: border-color .2s;
+}
+.code-input:focus { border-bottom-color: var(--black); }
+.code-input::placeholder { color: var(--gray-200); letter-spacing: 8px; }
+
+/* ── Buttons ── */
+.btn-primary {
+  display: block; width: 100%;
+  padding: 14px 24px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500; letter-spacing: .04em;
+  color: var(--white); background: var(--black);
+  border: none; border-radius: 2px;
+  cursor: pointer; transition: opacity .15s;
+}
+.btn-primary:hover { opacity: .85; }
+.btn-primary:disabled { opacity: .25; cursor: default; }
+
+.btn-outline {
+  display: inline-block;
+  padding: 10px 18px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 500; letter-spacing: .04em;
+  color: var(--black); background: transparent;
+  border: 1px solid var(--gray-200); border-radius: 2px;
+  cursor: pointer; transition: border-color .15s, background .15s;
+}
+.btn-outline:hover { border-color: var(--black); }
+
+.btn-ghost {
+  display: inline-block; padding: 10px 18px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 500; letter-spacing: .04em;
+  color: var(--gray-600); background: transparent;
+  border: 1px solid var(--gray-200); border-radius: 2px;
+  cursor: pointer; transition: all .15s;
+}
+.btn-ghost:hover { background: var(--gray-100); }
+
+.btn-danger {
+  display: inline-block; padding: 10px 18px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 500; letter-spacing: .04em;
+  color: var(--red); background: transparent;
+  border: 1px solid var(--red-bg); border-radius: 2px;
+  cursor: pointer; transition: background .15s;
+}
+.btn-danger:hover { background: var(--red-bg); }
+
+.join-btn {
+  padding: 12px 20px; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500;
+  color: var(--white); background: var(--black);
+  border: none; border-radius: 2px; cursor: pointer;
+  transition: opacity .15s; white-space: nowrap;
+}
+.join-btn:hover { opacity: .8; }
+
+/* ── Save slide button ── */
+.save-btn {
+  display: block; width: 100%;
+  padding: 14px 24px; margin-bottom: .5rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500; letter-spacing: .04em;
+  color: var(--white); background: var(--black);
+  border: 1.5px solid var(--black); border-radius: 2px;
+  cursor: pointer; transition: all .2s;
+}
+.save-btn:hover:not(:disabled) { opacity: .85; }
+.save-btn:disabled { background: transparent; color: var(--gray-400); border-color: var(--gray-200); cursor: default; }
+.save-btn.saved { background: var(--green-bg); color: var(--green); border-color: var(--green-bg); }
+
+/* ── Slide preview ── */
+.slide-preview {
+  background: var(--black);
+  border-radius: 2px;
+  aspect-ratio: 16/9;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  position: relative;
+}
+.slide-preview img, .slide-preview video {
+  width: 100%; height: 100%; object-fit: contain; display: block;
+}
+.slide-preview-empty {
+  font-size: 12px; color: #555; text-align: center;
+  font-family: 'DM Sans', sans-serif; letter-spacing: .03em;
+}
+.preview-badge {
+  position: absolute; bottom: 10px; right: 10px;
+  font-size: 10px; font-weight: 500; letter-spacing: .06em;
+  background: rgba(255,255,255,.12); color: rgba(255,255,255,.8);
+  padding: 3px 8px; border-radius: 20px;
+  font-family: 'DM Sans', sans-serif;
+}
+.new-flash {
+  position: absolute; top: 10px; left: 10px;
+  font-size: 10px; font-weight: 500; letter-spacing: .06em;
+  background: var(--green); color: #fff;
+  padding: 3px 8px; border-radius: 20px;
+  font-family: 'DM Sans', sans-serif;
+  opacity: 0; transition: opacity .3s;
+}
+.new-flash.show { opacity: 1; }
+
+/* ── Slide meta row ── */
+.slide-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+.slide-meta-left { font-size: 12px; color: var(--gray-400); }
+.slide-meta-right { font-size: 12px; color: var(--green); font-weight: 500; }
+
+/* ── Live indicator ── */
+.live-row {
+  display: flex; align-items: center; gap: 7px;
+  margin-bottom: 1rem;
+}
+.live-pip {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); animation: pip 2s infinite;
+}
+@keyframes pip { 0%,100%{opacity:1} 50%{opacity:.3} }
+.live-label {
+  font-size: 11px; font-weight: 500; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--gray-400);
+}
+
+/* ── Stats ── */
+.stats-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+.stat { flex: 1; }
+.stat-num {
+  font-family: 'Fraunces', serif; font-size: 32px; font-weight: 300;
+  line-height: 1; color: var(--black); margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 11px; font-weight: 400; color: var(--gray-400);
+  letter-spacing: .03em;
+}
+
+/* ── Session code display ── */
+.code-display {
+  margin-top: 2rem; padding-top: 1.5rem;
+  border-top: 1px solid var(--gray-200);
+}
+.code-display-label {
+  font-size: 10px; font-weight: 500; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--gray-400);
+  margin-bottom: .75rem;
+}
+.code-display-value {
+  font-family: 'Fraunces', serif;
+  font-size: 48px; font-weight: 300;
+  letter-spacing: 14px; color: var(--black);
+  line-height: 1;
+}
+
+/* ── Session name display (asistente) ── */
+.session-header {
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--gray-200);
+  margin-bottom: 1.5rem;
+}
+.session-header-name {
+  font-family: 'Fraunces', serif;
+  font-size: 20px; font-weight: 300;
+  line-height: 1.3; color: var(--black);
+  margin-bottom: 4px;
+}
+.session-header-sub {
+  font-size: 12px; color: var(--gray-400);
+}
+
+/* ── Presenter session name ── */
+.pres-session-chip {
+  display: inline-block;
+  font-size: 12px; color: var(--gray-600);
+  background: var(--gray-100);
+  padding: 5px 10px; border-radius: 2px;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Presenter controls row ── */
+.ctrl-row { display: flex; gap: 8px; margin-bottom: 1.5rem; }
+.ctrl-row .btn-outline { flex: 1; text-align: center; }
+.ctrl-row .btn-danger { flex: 1; text-align: center; }
+
+/* ── Gallery ── */
+.gallery-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.gallery-title {
+  font-size: 13px; font-weight: 500; color: var(--black);
+}
+.gallery-count {
+  font-size: 12px; color: var(--gray-400);
+}
+.gallery-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 4px; margin-bottom: 1rem;
+}
+.gallery-item {
+  position: relative; aspect-ratio: 16/9;
+  background: var(--black); border-radius: 2px;
+  overflow: hidden; cursor: pointer;
+  transition: opacity .15s;
+}
+.gallery-item:hover { opacity: .85; }
+.gallery-item img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.gallery-num {
+  position: absolute; bottom: 4px; right: 5px;
+  font-family: 'Fraunces', serif; font-size: 11px; font-weight: 300;
+  color: rgba(255,255,255,.7);
+}
+.gallery-empty {
+  grid-column: 1/-1; text-align: center;
+  padding: 2.5rem 0; font-size: 13px; color: var(--gray-400);
+}
+.gallery-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.gallery-actions > * { flex: 1; min-width: 100px; text-align: center; }
+
+/* ── Error ── */
+.err { font-size: 12px; color: var(--red); margin-top: .5rem; display: none; }
+
+/* ── Divider ── */
+.divider { border: none; border-top: 1px solid var(--gray-200); margin: 1.5rem 0; }
+
+/* ── Modal ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(10,10,10,.92);
+  display: none; align-items: center; justify-content: center;
+  z-index: 300; padding: 1.5rem;
+}
+.overlay.open { display: flex; }
+.modal { width: 100%; max-width: 480px; }
+.modal-img {
+  width: 100%; aspect-ratio: 16/9; object-fit: contain;
+  background: #111; display: block; border-radius: 2px;
+  margin-bottom: 12px;
+}
+.modal-foot { display: flex; gap: 8px; }
+.modal-foot > * { flex: 1; text-align: center; }
+.modal-close {
+  display: block; width: 100%; padding: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px;
+  font-weight: 500; letter-spacing: .04em;
+  color: rgba(255,255,255,.5); background: transparent;
+  border: 1px solid rgba(255,255,255,.15); border-radius: 2px;
+  cursor: pointer; margin-top: 8px;
+  transition: border-color .15s;
+}
+.modal-close:hover { border-color: rgba(255,255,255,.4); color: #fff; }
+.modal-dl {
+  display: block; width: 100%; padding: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px;
+  font-weight: 500; letter-spacing: .04em;
+  color: #fff; background: transparent;
+  border: 1px solid rgba(255,255,255,.3); border-radius: 2px;
+  cursor: pointer; transition: background .15s;
+}
+.modal-dl:hover { background: rgba(255,255,255,.1); }
+.modal-share {
+  display: block; width: 100%; padding: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px;
+  font-weight: 500; letter-spacing: .04em;
+  color: var(--black); background: var(--white);
+  border: none; border-radius: 2px; cursor: pointer;
+  transition: opacity .15s;
+}
+.modal-share:hover { opacity: .85; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>SlideSave</h1>
-  <div class="card">
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('presenter')">Presentador</button>
-      <button class="tab" onclick="switchTab('attendee')">Asistente</button>
+<div class="page">
+
+  <!-- Wordmark -->
+  <div class="wordmark">
+    <span class="wordmark-main">Slide<em>Save</em></span>
+    <div class="wordmark-dot"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('presenter')">Presentador</button>
+    <button class="tab" onclick="switchTab('attendee')">Asistente</button>
+  </div>
+
+  <!-- ════ PRESENTADOR ════ -->
+  <div id="panel-presenter" class="panel active">
+
+    <div id="pres-setup">
+      <p class="info">Ponle nombre a tu sesión, comparte tu pantalla y presenta con normalidad. SlideSave detecta cada cambio de slide automáticamente.</p>
+      <div class="field">
+        <label>Nombre de la sesión</label>
+        <input type="text" id="sessionNameInput" placeholder="IA en producción — TechDay 2026" maxlength="80">
+      </div>
+      <button class="btn-primary" onclick="startSharing()">Compartir pantalla</button>
     </div>
 
-    <!-- ===== PRESENTADOR ===== -->
-    <div id="panel-presenter" class="panel active">
-      <div id="pres-setup">
-        <div class="info-box">
-          Pulsa el botón y elige la ventana de tu PowerPoint. La app detecta automáticamente cada cambio de slide y lo envía a los asistentes.
-        </div>
-        <button class="btn btn-black" onclick="startSharing()">Compartir pantalla</button>
+    <div id="pres-active" style="display:none">
+      <div class="live-row">
+        <div class="live-pip"></div>
+        <span class="live-label" id="presStatus">En vivo</span>
       </div>
-      <div id="pres-active" style="display:none">
-        <div class="status-row"><span class="live-dot"></span><span id="presStatus">Detectando cambios...</span></div>
-        <div class="slide-box">
-          <video id="presVideo" autoplay muted playsinline></video>
-          <span class="badge" id="slideCountBadge">0 slides</span>
-          <span class="new-badge" id="newBadge">Nueva slide detectada</span>
+
+      <div class="pres-session-chip" id="presSessionName"></div>
+
+      <div class="slide-preview">
+        <video id="presVideo" autoplay muted playsinline></video>
+        <span class="preview-badge" id="slideCountBadge">0 slides</span>
+        <span class="new-flash" id="newBadge">Nueva slide</span>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-num" id="statSlides">0</div>
+          <div class="stat-label">Slides detectadas</div>
         </div>
-        <div class="stats-row">
-          <div class="stat"><div class="stat-num" id="statSlides">0</div><div class="stat-label">Slides detectadas</div></div>
-          <div class="stat"><div class="stat-num" id="statAtt">0</div><div class="stat-label">Asistentes</div></div>
+        <div class="stat">
+          <div class="stat-num" id="statAtt">0</div>
+          <div class="stat-label">Asistentes</div>
         </div>
-        <div class="row">
-          <button class="btn btn-gray" onclick="captureNow()">Capturar ahora</button>
-          <button class="btn btn-red" onclick="stopSharing()">Detener</button>
-        </div>
-        <div class="share-box">
-          <div class="session-code" id="sessionCodeEl">----</div>
-          <div class="share-hint">Código para los asistentes</div>
-        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <button class="btn-outline" onclick="captureNow()">Capturar ahora</button>
+        <button class="btn-danger" onclick="stopSharing()">Detener sesión</button>
+      </div>
+
+      <div class="code-display">
+        <div class="code-display-label">Código de sesión</div>
+        <div class="code-display-value" id="sessionCodeEl">----</div>
       </div>
     </div>
 
-    <!-- ===== ASISTENTE ===== -->
-    <div id="panel-attendee" class="panel">
-      <div id="att-join">
-        <p class="hint">Introduce el código que te da el presentador</p>
-        <div class="join-row">
-          <input class="code-input" id="codeInput" placeholder="ABCD" maxlength="4" oninput="this.value=this.value.toUpperCase()">
-          <button class="join-btn" onclick="joinSession()">Entrar</button>
-        </div>
-        <p class="err" id="joinError">Código no encontrado.</p>
+  </div>
+
+  <!-- ════ ASISTENTE ════ -->
+  <div id="panel-attendee" class="panel">
+
+    <div id="att-join">
+      <p class="info">Introduce el código de 4 letras que te da el presentador para unirte a la sesión.</p>
+      <div class="code-wrap">
+        <input class="code-input" id="codeInput" placeholder="ABCD" maxlength="4" oninput="this.value=this.value.toUpperCase()">
+        <button class="join-btn" onclick="joinSession()">Entrar</button>
+      </div>
+      <p class="err" id="joinError">Código no encontrado. Comprueba que el presentador ya ha iniciado la sesión.</p>
+    </div>
+
+    <div id="att-live" style="display:none">
+
+      <div class="live-row">
+        <div class="live-pip"></div>
+        <span class="live-label">Conectado en vivo</span>
       </div>
 
-      <div id="att-live" style="display:none">
-        <div class="status-row"><span class="live-dot"></span>Conectado en vivo</div>
-
-        <!-- Slide actual -->
-        <div class="slide-box">
-          <img id="attCurrent" src="" style="display:none">
-          <div class="empty-label" id="attWaiting">Esperando al presentador...</div>
-        </div>
-        <div class="slide-meta">
-          <span id="attSlideLabel" style="color:#666"></span>
-          <span id="attSavedLabel" style="color:#22c55e;font-weight:500;font-size:12px"></span>
-        </div>
-
-        <!-- Botón guardar: solo añade a galería -->
-        <button class="save-slide-btn" id="saveSlideBtn" onclick="saveCurrentSlide()" disabled>
-          Guardar slide
-        </button>
-
-        <!-- Galería -->
-        <div class="gal-header">
-          <h3>Mis slides guardadas</h3>
-          <span id="galCount">0 slides</span>
-        </div>
-        <div class="gal-grid" id="galGrid">
-          <div class="gal-empty">Pulsa "Guardar slide" para añadir slides aquí</div>
-        </div>
-        <div class="gal-actions" id="galActions" style="display:none">
-          <button class="btn btn-black" onclick="downloadAll()">Descargar todas</button>
-          <button class="btn btn-green" onclick="shareAll()">Compartir todas</button>
-          <button class="btn btn-red" onclick="clearAll()">Borrar todo</button>
-        </div>
+      <div class="session-header">
+        <div class="session-header-name" id="attSessionName"></div>
+        <div class="session-header-sub">Sesión en curso</div>
       </div>
+
+      <div class="slide-preview">
+        <img id="attCurrent" src="" style="display:none">
+        <div class="slide-preview-empty" id="attWaiting">Esperando al presentador…</div>
+      </div>
+
+      <div class="slide-meta">
+        <span class="slide-meta-left" id="attSlideLabel"></span>
+        <span class="slide-meta-right" id="attSavedLabel"></span>
+      </div>
+
+      <button class="save-btn" id="saveSlideBtn" onclick="saveCurrentSlide()" disabled>
+        Guardar slide
+      </button>
+
+      <hr class="divider">
+
+      <div class="gallery-header">
+        <span class="gallery-title">Guardadas</span>
+        <span class="gallery-count" id="galCount">0 slides</span>
+      </div>
+
+      <div class="gallery-grid" id="galGrid">
+        <div class="gallery-empty">Pulsa "Guardar slide" para añadir aquí</div>
+      </div>
+
+      <div class="gallery-actions" id="galActions" style="display:none">
+        <button class="btn-outline" onclick="downloadAll()">Descargar todas</button>
+        <button class="btn-outline" onclick="shareAll()">Compartir todas</button>
+        <button class="btn-ghost" onclick="clearAll()">Borrar</button>
+      </div>
+
     </div>
   </div>
-</div>
 
-<!-- Modal visor -->
+</div><!-- /page -->
+
+<!-- Modal -->
 <div class="overlay" id="overlay">
   <div class="modal">
-    <button class="modal-close-btn" onclick="closeModal()">✕</button>
-    <img id="modalImg" src="" alt="slide">
+    <img class="modal-img" id="modalImg" src="" alt="slide">
     <div class="modal-foot">
-      <button class="btn btn-gray" onclick="downloadModal()">Descargar</button>
-      <button class="btn btn-black" onclick="shareModal()">Compartir</button>
+      <button class="modal-dl" onclick="downloadModal()">Descargar</button>
+      <button class="modal-share" onclick="shareModal()">Compartir</button>
     </div>
+    <button class="modal-close" onclick="closeModal()">Cerrar</button>
   </div>
 </div>
 
@@ -189,246 +543,207 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ─── PRESENTADOR ──────────────────────────────────────────
-let stream = null, presCode = null, ticker = null;
-let slideCount = 0, prevPixels = null;
-const THRESHOLD = 0.04;
-const SAMPLE = 64;
+// ── PRESENTADOR ────────────────────────────────────────────
+let stream=null, presCode=null, ticker=null;
+let slideCount=0, prevPixels=null;
+const THRESHOLD=0.04, SAMPLE=64;
 
-function generateCode() {
-  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({length:4}, () => c[Math.floor(Math.random()*c.length)]).join('');
+function generateCode(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:4},()=>c[Math.floor(Math.random()*c.length)]).join('');
 }
 
-async function startSharing() {
-  try {
-    stream = await navigator.mediaDevices.getDisplayMedia({video:{frameRate:5,width:1920}, audio:false});
-  } catch(e) { alert('Permiso denegado para compartir pantalla.'); return; }
+async function startSharing(){
+  try{
+    stream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:5,width:1920},audio:false});
+  }catch(e){alert('Permiso denegado para compartir pantalla.');return;}
 
-  const video = document.getElementById('presVideo');
-  video.srcObject = stream;
-  await new Promise(r => video.onloadedmetadata = r);
+  const sessionName=document.getElementById('sessionNameInput').value.trim()||'Sesión sin nombre';
+  const video=document.getElementById('presVideo');
+  video.srcObject=stream;
+  await new Promise(r=>{video.onloadedmetadata=r;});
   video.play();
 
-  presCode = generateCode();
-  slideCount = 0; prevPixels = null;
+  presCode=generateCode(); slideCount=0; prevPixels=null;
+  await db.ref(`sessions/${presCode}/meta`).set({createdAt:Date.now(),totalSlides:0,currentSlide:-1,name:sessionName});
+  db.ref(`sessions/${presCode}/attendees`).on('value',s=>{document.getElementById('statAtt').textContent=s.numChildren();});
+  stream.getVideoTracks()[0].addEventListener('ended',stopSharing);
 
-  await db.ref(`sessions/${presCode}/meta`).set({createdAt:Date.now(), totalSlides:0, currentSlide:-1});
-  db.ref(`sessions/${presCode}/attendees`).on('value', s => {
-    document.getElementById('statAtt').textContent = s.numChildren();
-  });
-  stream.getVideoTracks()[0].addEventListener('ended', stopSharing);
-
-  document.getElementById('pres-setup').style.display = 'none';
-  document.getElementById('pres-active').style.display = 'block';
-  document.getElementById('sessionCodeEl').textContent = presCode;
+  document.getElementById('pres-setup').style.display='none';
+  document.getElementById('pres-active').style.display='block';
+  document.getElementById('sessionCodeEl').textContent=presCode;
+  document.getElementById('presSessionName').textContent=sessionName;
 
   await delay(1000);
-  prevPixels = sampleFrame();
-  ticker = setInterval(detectChange, 1200);
+  prevPixels=sampleFrame();
+  ticker=setInterval(detectChange,1200);
 }
 
-function sampleFrame() {
-  const v = document.getElementById('presVideo');
-  if (!v.videoWidth) return null;
-  const dc = document.getElementById('diffCanvas');
-  dc.width = SAMPLE; dc.height = SAMPLE;
-  dc.getContext('2d').drawImage(v, 0, 0, SAMPLE, SAMPLE);
-  return dc.getContext('2d').getImageData(0, 0, SAMPLE, SAMPLE).data;
+function sampleFrame(){
+  const v=document.getElementById('presVideo');
+  if(!v.videoWidth)return null;
+  const dc=document.getElementById('diffCanvas');
+  dc.width=SAMPLE; dc.height=SAMPLE;
+  dc.getContext('2d').drawImage(v,0,0,SAMPLE,SAMPLE);
+  return dc.getContext('2d').getImageData(0,0,SAMPLE,SAMPLE).data;
 }
 
-function pixelDiff(a, b) {
-  if (!a || !b) return 1;
-  let diff = 0;
-  const total = a.length / 4;
-  for (let i = 0; i < a.length; i += 4) {
-    if (Math.abs(a[i]-b[i]) + Math.abs(a[i+1]-b[i+1]) + Math.abs(a[i+2]-b[i+2]) > 30) diff++;
-  }
-  return diff / total;
+function pixelDiff(a,b){
+  if(!a||!b)return 1;
+  let diff=0;
+  for(let i=0;i<a.length;i+=4)
+    if(Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2])>30)diff++;
+  return diff/(a.length/4);
 }
 
-async function detectChange() {
-  const cur = sampleFrame();
-  if (pixelDiff(prevPixels, cur) > THRESHOLD) {
-    prevPixels = cur;
-    await captureAndUpload();
-  }
+async function detectChange(){
+  const cur=sampleFrame();
+  if(pixelDiff(prevPixels,cur)>THRESHOLD){prevPixels=cur;await captureAndUpload();}
 }
 
-async function captureNow() {
-  prevPixels = sampleFrame();
-  await captureAndUpload();
-}
+async function captureNow(){prevPixels=sampleFrame();await captureAndUpload();}
 
-async function captureAndUpload() {
-  const v = document.getElementById('presVideo');
-  const c = document.getElementById('capCanvas');
-  c.width = v.videoWidth; c.height = v.videoHeight;
-  c.getContext('2d').drawImage(v, 0, 0);
-  const b64 = c.toDataURL('image/jpeg', 0.78);
-
+async function captureAndUpload(){
+  const v=document.getElementById('presVideo');
+  const c=document.getElementById('capCanvas');
+  c.width=v.videoWidth; c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  const b64=c.toDataURL('image/jpeg',0.78);
   slideCount++;
   await db.ref(`sessions/${presCode}/slides/${slideCount-1}`).set(b64);
-  await db.ref(`sessions/${presCode}/meta`).update({totalSlides:slideCount, currentSlide:slideCount-1});
-
-  document.getElementById('statSlides').textContent = slideCount;
-  document.getElementById('slideCountBadge').textContent = `${slideCount} slides`;
-  document.getElementById('presStatus').textContent = `Slide ${slideCount} enviada`;
-
-  const badge = document.getElementById('newBadge');
+  await db.ref(`sessions/${presCode}/meta`).update({totalSlides:slideCount,currentSlide:slideCount-1});
+  document.getElementById('statSlides').textContent=slideCount;
+  document.getElementById('slideCountBadge').textContent=`${slideCount} slide${slideCount!==1?'s':''}`;
+  document.getElementById('presStatus').textContent=`Slide ${slideCount} enviada`;
+  const badge=document.getElementById('newBadge');
   badge.classList.add('show');
-  setTimeout(() => badge.classList.remove('show'), 1800);
+  setTimeout(()=>badge.classList.remove('show'),1800);
 }
 
-function stopSharing() {
+function stopSharing(){
   clearInterval(ticker);
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  stream = null; ticker = null; prevPixels = null; slideCount = 0;
-  document.getElementById('pres-setup').style.display = 'block';
-  document.getElementById('pres-active').style.display = 'none';
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  stream=null;ticker=null;prevPixels=null;slideCount=0;
+  document.getElementById('pres-setup').style.display='block';
+  document.getElementById('pres-active').style.display='none';
 }
 
-// ─── ASISTENTE ────────────────────────────────────────────
-let gallery = [];       // {b64, slideIdx, savedAt}
-let currentB64 = null;
-let currentSlideIdx = null;
-let modalB64 = null;
+// ── ASISTENTE ──────────────────────────────────────────────
+let gallery=[], savedCounter=0;
+let currentB64=null, currentSlideIdx=null;
+let modalB64=null, sessionTitle='';
 
-function joinSession() {
-  const val = document.getElementById('codeInput').value.trim().toUpperCase();
-  document.getElementById('joinError').style.display = 'none';
-
-  db.ref(`sessions/${val}/meta`).once('value').then(snap => {
-    if (!snap.exists()) { document.getElementById('joinError').style.display = 'block'; return; }
-
-    document.getElementById('att-join').style.display = 'none';
-    document.getElementById('att-live').style.display = 'block';
-
-    const ref = db.ref(`sessions/${val}/attendees`).push();
+function joinSession(){
+  const val=document.getElementById('codeInput').value.trim().toUpperCase();
+  document.getElementById('joinError').style.display='none';
+  db.ref(`sessions/${val}/meta`).once('value').then(snap=>{
+    if(!snap.exists()){document.getElementById('joinError').style.display='block';return;}
+    const meta=snap.val();
+    sessionTitle=meta.name||'Sesión';
+    document.getElementById('att-join').style.display='none';
+    document.getElementById('att-live').style.display='block';
+    document.getElementById('attSessionName').textContent=sessionTitle;
+    const ref=db.ref(`sessions/${val}/attendees`).push();
     ref.set(true); ref.onDisconnect().remove();
-
-    // Slide actual cambia → actualizamos vista
-    db.ref(`sessions/${val}/meta/currentSlide`).on('value', snap => {
-      const idx = snap.val();
-      if (idx === null || idx < 0) return;
-      db.ref(`sessions/${val}/slides/${idx}`).once('value').then(s => {
-        const b64 = s.val();
-        if (!b64) return;
-        currentB64 = b64;
-        currentSlideIdx = idx;
-
-        const img = document.getElementById('attCurrent');
-        img.src = b64; img.style.display = 'block';
-        document.getElementById('attWaiting').style.display = 'none';
-        document.getElementById('attSlideLabel').textContent = `Slide ${idx+1}`;
-
-        // Comprobar si ya está guardada
-        const alreadySaved = gallery.some(g => g.slideIdx === idx);
-        const btn = document.getElementById('saveSlideBtn');
-        btn.disabled = false;
-        if (alreadySaved) {
-          btn.textContent = '✓ Ya guardada';
-          btn.classList.add('saved');
-        } else {
-          btn.textContent = 'Guardar slide';
-          btn.classList.remove('saved');
-        }
-        document.getElementById('attSavedLabel').textContent = '';
+    db.ref(`sessions/${val}/meta/currentSlide`).on('value',snap2=>{
+      const idx=snap2.val();
+      if(idx===null||idx<0)return;
+      db.ref(`sessions/${val}/slides/${idx}`).once('value').then(s=>{
+        const b64=s.val(); if(!b64)return;
+        currentB64=b64; currentSlideIdx=idx;
+        const img=document.getElementById('attCurrent');
+        img.src=b64; img.style.display='block';
+        document.getElementById('attWaiting').style.display='none';
+        document.getElementById('attSlideLabel').textContent=`Slide ${idx+1}`;
+        const already=gallery.some(g=>g.slideIdx===idx);
+        const btn=document.getElementById('saveSlideBtn');
+        btn.disabled=false;
+        if(already){btn.textContent='✓ Ya guardada';btn.classList.add('saved');}
+        else{btn.textContent='Guardar slide';btn.classList.remove('saved');}
+        document.getElementById('attSavedLabel').textContent='';
       });
     });
   });
 }
 
-function saveCurrentSlide() {
-  if (!currentB64 || currentSlideIdx === null) return;
-  if (gallery.some(g => g.slideIdx === currentSlideIdx)) return; // ya guardada
-
-  gallery.push({ b64: currentB64, slideIdx: currentSlideIdx, savedAt: Date.now() });
-  gallery.sort((a,b) => a.slideIdx - b.slideIdx);
-
-  const btn = document.getElementById('saveSlideBtn');
-  btn.textContent = '✓ Guardada';
-  btn.classList.add('saved');
-  document.getElementById('attSavedLabel').textContent = `${gallery.length} en total`;
-
+function saveCurrentSlide(){
+  if(!currentB64||currentSlideIdx===null)return;
+  if(gallery.some(g=>g.slideIdx===currentSlideIdx))return;
+  savedCounter++;
+  gallery.push({b64:currentB64,slideIdx:currentSlideIdx,savedOrder:savedCounter});
+  gallery.sort((a,b)=>a.savedOrder-b.savedOrder);
+  const btn=document.getElementById('saveSlideBtn');
+  btn.textContent='✓ Guardada'; btn.classList.add('saved');
+  document.getElementById('attSavedLabel').textContent=`${gallery.length} guardada${gallery.length!==1?'s':''}`;
   renderGallery();
 }
 
-function renderGallery() {
-  const grid = document.getElementById('galGrid');
-  const count = document.getElementById('galCount');
-  const actions = document.getElementById('galActions');
-
-  count.textContent = `${gallery.length} slide${gallery.length !== 1 ? 's' : ''}`;
-  actions.style.display = gallery.length ? 'flex' : 'none';
-
-  if (!gallery.length) {
-    grid.innerHTML = '<div class="gal-empty">Pulsa "Guardar slide" para añadir slides aquí</div>';
-    return;
-  }
-  grid.innerHTML = '';
-  gallery.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'gal-item';
-    div.innerHTML = `<img src="${item.b64}" alt="slide ${item.slideIdx+1}"><span class="gal-num">${item.slideIdx+1}</span>`;
-    div.onclick = () => openModal(item.b64);
+function renderGallery(){
+  const grid=document.getElementById('galGrid');
+  const count=document.getElementById('galCount');
+  const actions=document.getElementById('galActions');
+  count.textContent=`${gallery.length} slide${gallery.length!==1?'s':''}`;
+  actions.style.display=gallery.length?'flex':'none';
+  if(!gallery.length){grid.innerHTML='<div class="gallery-empty">Pulsa "Guardar slide" para añadir aquí</div>';return;}
+  grid.innerHTML='';
+  gallery.forEach(item=>{
+    const div=document.createElement('div');
+    div.className='gallery-item';
+    div.innerHTML=`<img src="${item.b64}" alt="slide ${item.savedOrder}"><span class="gallery-num">${item.savedOrder}</span>`;
+    div.onclick=()=>openModal(item.b64);
     grid.appendChild(div);
   });
 }
 
-function openModal(b64) {
-  modalB64 = b64;
-  document.getElementById('modalImg').src = b64;
+function openModal(b64){
+  modalB64=b64;
+  document.getElementById('modalImg').src=b64;
   document.getElementById('overlay').classList.add('open');
 }
-function closeModal() { document.getElementById('overlay').classList.remove('open'); modalB64 = null; }
-function downloadModal() { if (modalB64) trigger(modalB64, `slide-${Date.now()}.jpg`); }
-async function shareModal() { if (modalB64) await shareImg(modalB64); }
+function closeModal(){document.getElementById('overlay').classList.remove('open');modalB64=null;}
+function downloadModal(){if(modalB64)trigger(modalB64,`${sessionTitle}-slide.jpg`);}
+async function shareModal(){if(modalB64)await shareImg(modalB64);}
 
-async function downloadAll() {
-  for (let i = 0; i < gallery.length; i++) {
-    await delay(250);
-    trigger(gallery[i].b64, `slide-${gallery[i].slideIdx+1}.jpg`);
-  }
+async function downloadAll(){
+  for(let i=0;i<gallery.length;i++){await delay(250);trigger(gallery[i].b64,`${sessionTitle}-slide-${gallery[i].savedOrder}.jpg`);}
 }
 
-async function shareAll() {
-  if (!navigator.share) { downloadAll(); return; }
-  try {
-    const files = await Promise.all(gallery.map(async item => {
-      const blob = await (await fetch(item.b64)).blob();
-      return new File([blob], `slide-${item.slideIdx+1}.jpg`, {type:'image/jpeg'});
+async function shareAll(){
+  if(!navigator.share){downloadAll();return;}
+  try{
+    const files=await Promise.all(gallery.map(async item=>{
+      const blob=await(await fetch(item.b64)).blob();
+      return new File([blob],`${sessionTitle}-slide-${item.savedOrder}.jpg`,{type:'image/jpeg'});
     }));
-    await navigator.share({files, title:'Mis slides guardadas'});
-  } catch(e) { downloadAll(); }
+    await navigator.share({files,title:sessionTitle});
+  }catch(e){downloadAll();}
 }
 
-async function shareImg(b64) {
-  if (!navigator.share) { trigger(b64, `slide-${Date.now()}.jpg`); return; }
-  try {
-    const blob = await (await fetch(b64)).blob();
-    await navigator.share({files:[new File([blob],`slide-${Date.now()}.jpg`,{type:'image/jpeg'})]});
-  } catch(e) { trigger(b64, `slide-${Date.now()}.jpg`); }
+async function shareImg(b64){
+  if(!navigator.share){trigger(b64,`${sessionTitle}-slide.jpg`);return;}
+  try{
+    const blob=await(await fetch(b64)).blob();
+    await navigator.share({files:[new File([blob],`${sessionTitle}-slide.jpg`,{type:'image/jpeg'})],title:sessionTitle});
+  }catch(e){trigger(b64,`${sessionTitle}-slide.jpg`);}
 }
 
-function clearAll() {
-  if (!confirm('¿Borrar todas las slides guardadas?')) return;
-  gallery = [];
-  document.getElementById('attSavedLabel').textContent = '';
-  const btn = document.getElementById('saveSlideBtn');
-  btn.textContent = 'Guardar slide';
-  btn.classList.remove('saved');
+function clearAll(){
+  if(!confirm('¿Borrar todas las slides guardadas?'))return;
+  gallery=[];savedCounter=0;
+  document.getElementById('attSavedLabel').textContent='';
+  const btn=document.getElementById('saveSlideBtn');
+  btn.textContent='Guardar slide'; btn.classList.remove('saved');
   renderGallery();
 }
 
-function trigger(b64, name) { const a = document.createElement('a'); a.href=b64; a.download=name; a.click(); }
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+function trigger(b64,name){const a=document.createElement('a');a.href=b64;a.download=name;a.click();}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
 
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) =>
-    t.classList.toggle('active', (tab==='presenter'&&i===0)||(tab==='attendee'&&i===1)));
-  document.getElementById('panel-presenter').classList.toggle('active', tab==='presenter');
-  document.getElementById('panel-attendee').classList.toggle('active', tab==='attendee');
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>
+    t.classList.toggle('active',(tab==='presenter'&&i===0)||(tab==='attendee'&&i===1)));
+  document.getElementById('panel-presenter').classList.toggle('active',tab==='presenter');
+  document.getElementById('panel-attendee').classList.toggle('active',tab==='attendee');
 }
 </script>
 </body>
