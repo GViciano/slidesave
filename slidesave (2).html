@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SlideSave</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f5f5f3;color:#1a1a1a;min-height:100vh}
+.wrap{max-width:520px;margin:0 auto;padding:1.5rem 1rem 4rem}
+h1{font-size:18px;font-weight:500;margin-bottom:1.25rem}
+.card{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;overflow:hidden;margin-bottom:1rem}
+.tabs{display:flex;border-bottom:0.5px solid rgba(0,0,0,0.1)}
+.tab{flex:1;padding:.65rem 1rem;font-size:13px;font-weight:500;text-align:center;cursor:pointer;background:transparent;border:none;color:#888;border-bottom:2px solid transparent;transition:all .15s}
+.tab.active{color:#1a1a1a;border-bottom:2px solid #1a1a1a}
+.panel{display:none;padding:1rem}
+.panel.active{display:block}
+.slide-box{background:#111;border-radius:8px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:.75rem;position:relative}
+.slide-box img,.slide-box video{width:100%;height:100%;object-fit:contain;display:block}
+.empty-label{color:#555;font-size:13px;text-align:center;padding:1rem}
+.btn{display:block;width:100%;padding:12px;font-size:14px;font-weight:500;border-radius:8px;cursor:pointer;border:none;transition:all .15s;text-align:center}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.3;cursor:default}
+.btn-black{background:#1a1a1a;color:#fff}
+.btn-gray{background:#f0f0ee;color:#1a1a1a;border:0.5px solid rgba(0,0,0,0.15)}
+.btn-red{background:#fee2e2;color:#991b1b}
+.btn-green{background:#dcfce7;color:#166534;border:0.5px solid #bbf7d0}
+.save-slide-btn{width:100%;padding:14px;font-size:15px;font-weight:500;border-radius:8px;cursor:pointer;border:none;background:#1a1a1a;color:#fff;margin-bottom:.5rem;transition:all .15s}
+.save-slide-btn:hover{background:#333}
+.save-slide-btn:disabled{background:#e8e8e5;color:#aaa;cursor:default}
+.save-slide-btn.saved{background:#166534;color:#fff}
+.row{display:flex;gap:8px;margin-bottom:.75rem}
+.row .btn{flex:1}
+.share-box{background:#f5f5f3;border-radius:8px;padding:.85rem 1rem;margin-top:.75rem}
+.session-code{font-size:36px;font-weight:600;letter-spacing:10px;font-family:'SF Mono','Fira Code',monospace;color:#1a1a1a;margin-bottom:4px}
+.share-hint{font-size:12px;color:#888}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.status-row{display:flex;align-items:center;font-size:12px;color:#666;margin-bottom:.6rem}
+.join-row{display:flex;gap:8px;margin-bottom:.75rem}
+.code-input{flex:1;font-size:22px;text-align:center;letter-spacing:6px;font-family:'SF Mono','Fira Code',monospace;text-transform:uppercase;padding:10px;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;background:#fff;color:#1a1a1a}
+.join-btn{padding:0 20px;font-size:14px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:500}
+.hint{font-size:13px;color:#666;margin-bottom:.75rem}
+.err{font-size:13px;color:#c0392b;margin-top:.5rem;display:none}
+.info-box{background:#eff6ff;border:0.5px solid #bfdbfe;border-radius:8px;padding:.65rem .85rem;font-size:12px;color:#1e40af;margin-bottom:.75rem;line-height:1.6}
+.badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;font-size:11px;padding:3px 8px;border-radius:20px}
+.new-badge{position:absolute;top:8px;left:8px;background:#22c55e;color:#fff;font-size:11px;padding:3px 8px;border-radius:20px;opacity:0;transition:opacity .3s}
+.new-badge.show{opacity:1}
+.stats-row{display:flex;gap:8px;margin-bottom:.75rem}
+.stat{flex:1;background:#f5f5f3;border-radius:8px;padding:.6rem .75rem;text-align:center}
+.stat-num{font-size:22px;font-weight:600}
+.stat-label{font-size:11px;color:#888;margin-top:2px}
+.slide-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.slide-meta span{font-size:13px;color:#666}
+/* Galería */
+.gal-header{display:flex;align-items:center;justify-content:space-between;margin:1rem 0 .6rem}
+.gal-header h3{font-size:14px;font-weight:500}
+.gal-header span{font-size:12px;color:#aaa}
+.gal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.gal-item{position:relative;aspect-ratio:16/9;background:#111;border-radius:5px;overflow:hidden;cursor:pointer}
+.gal-item img{width:100%;height:100%;object-fit:contain;display:block}
+.gal-num{position:absolute;bottom:3px;right:4px;background:rgba(0,0,0,0.6);color:#fff;font-size:10px;padding:1px 5px;border-radius:10px}
+.gal-empty{text-align:center;color:#aaa;font-size:13px;padding:2rem 0;grid-column:1/-1}
+.gal-actions{display:flex;gap:8px;margin-top:.75rem;flex-wrap:wrap}
+.gal-actions .btn{flex:1;min-width:100px;padding:10px;font-size:13px}
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);display:none;align-items:center;justify-content:center;z-index:200;padding:1rem}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;overflow:hidden;width:100%;max-width:480px;position:relative}
+.modal img{width:100%;aspect-ratio:16/9;object-fit:contain;background:#111;display:block}
+.modal-foot{padding:.75rem 1rem;display:flex;gap:8px}
+.modal-foot .btn{flex:1;padding:10px;font-size:13px}
+.modal-close-btn{position:absolute;top:.75rem;right:.75rem;background:rgba(0,0,0,.4);border:none;color:#fff;border-radius:50%;width:30px;height:30px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>SlideSave</h1>
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('presenter')">Presentador</button>
+      <button class="tab" onclick="switchTab('attendee')">Asistente</button>
+    </div>
+
+    <!-- ===== PRESENTADOR ===== -->
+    <div id="panel-presenter" class="panel active">
+      <div id="pres-setup">
+        <div class="info-box">
+          Pulsa el botón y elige la ventana de tu PowerPoint. La app detecta automáticamente cada cambio de slide y lo envía a los asistentes.
+        </div>
+        <button class="btn btn-black" onclick="startSharing()">Compartir pantalla</button>
+      </div>
+      <div id="pres-active" style="display:none">
+        <div class="status-row"><span class="live-dot"></span><span id="presStatus">Detectando cambios...</span></div>
+        <div class="slide-box">
+          <video id="presVideo" autoplay muted playsinline></video>
+          <span class="badge" id="slideCountBadge">0 slides</span>
+          <span class="new-badge" id="newBadge">Nueva slide detectada</span>
+        </div>
+        <div class="stats-row">
+          <div class="stat"><div class="stat-num" id="statSlides">0</div><div class="stat-label">Slides detectadas</div></div>
+          <div class="stat"><div class="stat-num" id="statAtt">0</div><div class="stat-label">Asistentes</div></div>
+        </div>
+        <div class="row">
+          <button class="btn btn-gray" onclick="captureNow()">Capturar ahora</button>
+          <button class="btn btn-red" onclick="stopSharing()">Detener</button>
+        </div>
+        <div class="share-box">
+          <div class="session-code" id="sessionCodeEl">----</div>
+          <div class="share-hint">Código para los asistentes</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ASISTENTE ===== -->
+    <div id="panel-attendee" class="panel">
+      <div id="att-join">
+        <p class="hint">Introduce el código que te da el presentador</p>
+        <div class="join-row">
+          <input class="code-input" id="codeInput" placeholder="ABCD" maxlength="4" oninput="this.value=this.value.toUpperCase()">
+          <button class="join-btn" onclick="joinSession()">Entrar</button>
+        </div>
+        <p class="err" id="joinError">Código no encontrado.</p>
+      </div>
+
+      <div id="att-live" style="display:none">
+        <div class="status-row"><span class="live-dot"></span>Conectado en vivo</div>
+
+        <!-- Slide actual -->
+        <div class="slide-box">
+          <img id="attCurrent" src="" style="display:none">
+          <div class="empty-label" id="attWaiting">Esperando al presentador...</div>
+        </div>
+        <div class="slide-meta">
+          <span id="attSlideLabel" style="color:#666"></span>
+          <span id="attSavedLabel" style="color:#22c55e;font-weight:500;font-size:12px"></span>
+        </div>
+
+        <!-- Botón guardar: solo añade a galería -->
+        <button class="save-slide-btn" id="saveSlideBtn" onclick="saveCurrentSlide()" disabled>
+          Guardar slide
+        </button>
+
+        <!-- Galería -->
+        <div class="gal-header">
+          <h3>Mis slides guardadas</h3>
+          <span id="galCount">0 slides</span>
+        </div>
+        <div class="gal-grid" id="galGrid">
+          <div class="gal-empty">Pulsa "Guardar slide" para añadir slides aquí</div>
+        </div>
+        <div class="gal-actions" id="galActions" style="display:none">
+          <button class="btn btn-black" onclick="downloadAll()">Descargar todas</button>
+          <button class="btn btn-green" onclick="shareAll()">Compartir todas</button>
+          <button class="btn btn-red" onclick="clearAll()">Borrar todo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal visor -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="modal-close-btn" onclick="closeModal()">✕</button>
+    <img id="modalImg" src="" alt="slide">
+    <div class="modal-foot">
+      <button class="btn btn-gray" onclick="downloadModal()">Descargar</button>
+      <button class="btn btn-black" onclick="shareModal()">Compartir</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="capCanvas" style="display:none"></canvas>
+<canvas id="diffCanvas" style="display:none"></canvas>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBaFzzb5WystTD0_1rQu5bOCMabYCQqP5M",
+  authDomain: "getmyslide.firebaseapp.com",
+  databaseURL: "https://getmyslide-default-rtdb.firebaseio.com",
+  projectId: "getmyslide",
+  storageBucket: "getmyslide.firebasestorage.app",
+  messagingSenderId: "667985038831",
+  appId: "1:667985038831:web:a57659b33fcb182529fa1a"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ─── PRESENTADOR ──────────────────────────────────────────
+let stream = null, presCode = null, ticker = null;
+let slideCount = 0, prevPixels = null;
+const THRESHOLD = 0.04;
+const SAMPLE = 64;
+
+function generateCode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:4}, () => c[Math.floor(Math.random()*c.length)]).join('');
+}
+
+async function startSharing() {
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({video:{frameRate:5,width:1920}, audio:false});
+  } catch(e) { alert('Permiso denegado para compartir pantalla.'); return; }
+
+  const video = document.getElementById('presVideo');
+  video.srcObject = stream;
+  await new Promise(r => video.onloadedmetadata = r);
+  video.play();
+
+  presCode = generateCode();
+  slideCount = 0; prevPixels = null;
+
+  await db.ref(`sessions/${presCode}/meta`).set({createdAt:Date.now(), totalSlides:0, currentSlide:-1});
+  db.ref(`sessions/${presCode}/attendees`).on('value', s => {
+    document.getElementById('statAtt').textContent = s.numChildren();
+  });
+  stream.getVideoTracks()[0].addEventListener('ended', stopSharing);
+
+  document.getElementById('pres-setup').style.display = 'none';
+  document.getElementById('pres-active').style.display = 'block';
+  document.getElementById('sessionCodeEl').textContent = presCode;
+
+  await delay(1000);
+  prevPixels = sampleFrame();
+  ticker = setInterval(detectChange, 1200);
+}
+
+function sampleFrame() {
+  const v = document.getElementById('presVideo');
+  if (!v.videoWidth) return null;
+  const dc = document.getElementById('diffCanvas');
+  dc.width = SAMPLE; dc.height = SAMPLE;
+  dc.getContext('2d').drawImage(v, 0, 0, SAMPLE, SAMPLE);
+  return dc.getContext('2d').getImageData(0, 0, SAMPLE, SAMPLE).data;
+}
+
+function pixelDiff(a, b) {
+  if (!a || !b) return 1;
+  let diff = 0;
+  const total = a.length / 4;
+  for (let i = 0; i < a.length; i += 4) {
+    if (Math.abs(a[i]-b[i]) + Math.abs(a[i+1]-b[i+1]) + Math.abs(a[i+2]-b[i+2]) > 30) diff++;
+  }
+  return diff / total;
+}
+
+async function detectChange() {
+  const cur = sampleFrame();
+  if (pixelDiff(prevPixels, cur) > THRESHOLD) {
+    prevPixels = cur;
+    await captureAndUpload();
+  }
+}
+
+async function captureNow() {
+  prevPixels = sampleFrame();
+  await captureAndUpload();
+}
+
+async function captureAndUpload() {
+  const v = document.getElementById('presVideo');
+  const c = document.getElementById('capCanvas');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v, 0, 0);
+  const b64 = c.toDataURL('image/jpeg', 0.78);
+
+  slideCount++;
+  await db.ref(`sessions/${presCode}/slides/${slideCount-1}`).set(b64);
+  await db.ref(`sessions/${presCode}/meta`).update({totalSlides:slideCount, currentSlide:slideCount-1});
+
+  document.getElementById('statSlides').textContent = slideCount;
+  document.getElementById('slideCountBadge').textContent = `${slideCount} slides`;
+  document.getElementById('presStatus').textContent = `Slide ${slideCount} enviada`;
+
+  const badge = document.getElementById('newBadge');
+  badge.classList.add('show');
+  setTimeout(() => badge.classList.remove('show'), 1800);
+}
+
+function stopSharing() {
+  clearInterval(ticker);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null; ticker = null; prevPixels = null; slideCount = 0;
+  document.getElementById('pres-setup').style.display = 'block';
+  document.getElementById('pres-active').style.display = 'none';
+}
+
+// ─── ASISTENTE ────────────────────────────────────────────
+let gallery = [];       // {b64, slideIdx, savedAt}
+let currentB64 = null;
+let currentSlideIdx = null;
+let modalB64 = null;
+
+function joinSession() {
+  const val = document.getElementById('codeInput').value.trim().toUpperCase();
+  document.getElementById('joinError').style.display = 'none';
+
+  db.ref(`sessions/${val}/meta`).once('value').then(snap => {
+    if (!snap.exists()) { document.getElementById('joinError').style.display = 'block'; return; }
+
+    document.getElementById('att-join').style.display = 'none';
+    document.getElementById('att-live').style.display = 'block';
+
+    const ref = db.ref(`sessions/${val}/attendees`).push();
+    ref.set(true); ref.onDisconnect().remove();
+
+    // Slide actual cambia → actualizamos vista
+    db.ref(`sessions/${val}/meta/currentSlide`).on('value', snap => {
+      const idx = snap.val();
+      if (idx === null || idx < 0) return;
+      db.ref(`sessions/${val}/slides/${idx}`).once('value').then(s => {
+        const b64 = s.val();
+        if (!b64) return;
+        currentB64 = b64;
+        currentSlideIdx = idx;
+
+        const img = document.getElementById('attCurrent');
+        img.src = b64; img.style.display = 'block';
+        document.getElementById('attWaiting').style.display = 'none';
+        document.getElementById('attSlideLabel').textContent = `Slide ${idx+1}`;
+
+        // Comprobar si ya está guardada
+        const alreadySaved = gallery.some(g => g.slideIdx === idx);
+        const btn = document.getElementById('saveSlideBtn');
+        btn.disabled = false;
+        if (alreadySaved) {
+          btn.textContent = '✓ Ya guardada';
+          btn.classList.add('saved');
+        } else {
+          btn.textContent = 'Guardar slide';
+          btn.classList.remove('saved');
+        }
+        document.getElementById('attSavedLabel').textContent = '';
+      });
+    });
+  });
+}
+
+function saveCurrentSlide() {
+  if (!currentB64 || currentSlideIdx === null) return;
+  if (gallery.some(g => g.slideIdx === currentSlideIdx)) return; // ya guardada
+
+  gallery.push({ b64: currentB64, slideIdx: currentSlideIdx, savedAt: Date.now() });
+  gallery.sort((a,b) => a.slideIdx - b.slideIdx);
+
+  const btn = document.getElementById('saveSlideBtn');
+  btn.textContent = '✓ Guardada';
+  btn.classList.add('saved');
+  document.getElementById('attSavedLabel').textContent = `${gallery.length} en total`;
+
+  renderGallery();
+}
+
+function renderGallery() {
+  const grid = document.getElementById('galGrid');
+  const count = document.getElementById('galCount');
+  const actions = document.getElementById('galActions');
+
+  count.textContent = `${gallery.length} slide${gallery.length !== 1 ? 's' : ''}`;
+  actions.style.display = gallery.length ? 'flex' : 'none';
+
+  if (!gallery.length) {
+    grid.innerHTML = '<div class="gal-empty">Pulsa "Guardar slide" para añadir slides aquí</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  gallery.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'gal-item';
+    div.innerHTML = `<img src="${item.b64}" alt="slide ${item.slideIdx+1}"><span class="gal-num">${item.slideIdx+1}</span>`;
+    div.onclick = () => openModal(item.b64);
+    grid.appendChild(div);
+  });
+}
+
+function openModal(b64) {
+  modalB64 = b64;
+  document.getElementById('modalImg').src = b64;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('overlay').classList.remove('open'); modalB64 = null; }
+function downloadModal() { if (modalB64) trigger(modalB64, `slide-${Date.now()}.jpg`); }
+async function shareModal() { if (modalB64) await shareImg(modalB64); }
+
+async function downloadAll() {
+  for (let i = 0; i < gallery.length; i++) {
+    await delay(250);
+    trigger(gallery[i].b64, `slide-${gallery[i].slideIdx+1}.jpg`);
+  }
+}
+
+async function shareAll() {
+  if (!navigator.share) { downloadAll(); return; }
+  try {
+    const files = await Promise.all(gallery.map(async item => {
+      const blob = await (await fetch(item.b64)).blob();
+      return new File([blob], `slide-${item.slideIdx+1}.jpg`, {type:'image/jpeg'});
+    }));
+    await navigator.share({files, title:'Mis slides guardadas'});
+  } catch(e) { downloadAll(); }
+}
+
+async function shareImg(b64) {
+  if (!navigator.share) { trigger(b64, `slide-${Date.now()}.jpg`); return; }
+  try {
+    const blob = await (await fetch(b64)).blob();
+    await navigator.share({files:[new File([blob],`slide-${Date.now()}.jpg`,{type:'image/jpeg'})]});
+  } catch(e) { trigger(b64, `slide-${Date.now()}.jpg`); }
+}
+
+function clearAll() {
+  if (!confirm('¿Borrar todas las slides guardadas?')) return;
+  gallery = [];
+  document.getElementById('attSavedLabel').textContent = '';
+  const btn = document.getElementById('saveSlideBtn');
+  btn.textContent = 'Guardar slide';
+  btn.classList.remove('saved');
+  renderGallery();
+}
+
+function trigger(b64, name) { const a = document.createElement('a'); a.href=b64; a.download=name; a.click(); }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) =>
+    t.classList.toggle('active', (tab==='presenter'&&i===0)||(tab==='attendee'&&i===1)));
+  document.getElementById('panel-presenter').classList.toggle('active', tab==='presenter');
+  document.getElementById('panel-attendee').classList.toggle('active', tab==='attendee');
+}
+</script>
+</body>
+</html>
