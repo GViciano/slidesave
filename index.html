@@ -517,6 +517,7 @@ input[type=text]::placeholder { color: var(--gray-400); }
     <div class="modal-foot">
       <button class="modal-dl" onclick="downloadModal()">Descargar</button>
       <button class="modal-share" onclick="shareModal()">Compartir</button>
+      <button class="modal-dl" onclick="deleteModal()" style="border-color:rgba(192,57,43,.4);color:#e74c3c">Eliminar</button>
     </div>
     <button class="modal-close" onclick="closeModal()">Cerrar</button>
   </div>
@@ -663,9 +664,8 @@ function joinSession(){
         const already=gallery.some(g=>g.slideIdx===idx);
         const btn=document.getElementById('saveSlideBtn');
         btn.disabled=false;
-        if(already){btn.textContent='✓ Ya guardada';btn.classList.add('saved');}
+        if(already){btn.textContent='✓ Guardada · Volver a capturar';btn.classList.add('saved');}
         else{btn.textContent='Guardar slide';btn.classList.remove('saved');}
-        document.getElementById('attSavedLabel').textContent='';
       });
     });
   });
@@ -673,7 +673,9 @@ function joinSession(){
 
 function saveCurrentSlide(){
   if(!currentB64||currentSlideIdx===null)return;
-  if(gallery.some(g=>g.slideIdx===currentSlideIdx))return;
+  // Eliminar entrada anterior de la misma slide si existe (re-captura)
+  const existingIdx=gallery.findIndex(g=>g.slideIdx===currentSlideIdx);
+  if(existingIdx!==-1) gallery.splice(existingIdx,1);
   savedCounter++;
   gallery.push({b64:currentB64,slideIdx:currentSlideIdx,savedOrder:savedCounter});
   gallery.sort((a,b)=>a.savedOrder-b.savedOrder);
@@ -694,19 +696,30 @@ function renderGallery(){
     const div=document.createElement('div');
     div.className='gallery-item';
     div.innerHTML=`<img src="${item.b64}" alt="slide ${item.savedOrder}"><span class="gallery-num">${item.savedOrder}</span>`;
-    div.onclick=()=>openModal(item.b64);
+    div.onclick=()=>openModal(item.b64, item.savedOrder);
     grid.appendChild(div);
   });
 }
 
-function openModal(b64){
-  modalB64=b64;
+let modalSavedOrder=null;
+function openModal(b64, savedOrder){
+  modalB64=b64; modalSavedOrder=savedOrder;
   document.getElementById('modalImg').src=b64;
   document.getElementById('overlay').classList.add('open');
 }
-function closeModal(){document.getElementById('overlay').classList.remove('open');modalB64=null;}
+function closeModal(){document.getElementById('overlay').classList.remove('open');modalB64=null;modalSavedOrder=null;}
 function downloadModal(){if(modalB64)trigger(modalB64,`${sessionTitle}-slide.jpg`);}
 async function shareModal(){if(modalB64)await shareImg(modalB64);}
+function deleteModal(){
+  if(modalSavedOrder===null)return;
+  gallery=gallery.filter(g=>g.savedOrder!==modalSavedOrder);
+  closeModal();
+  // Si la slide actual era la eliminada, actualizar botón
+  const stillSaved=gallery.some(g=>g.slideIdx===currentSlideIdx);
+  const btn=document.getElementById('saveSlideBtn');
+  if(!stillSaved&&currentB64){btn.textContent='Guardar slide';btn.classList.remove('saved');}
+  renderGallery();
+}
 
 async function downloadAll(){
   for(let i=0;i<gallery.length;i++){await delay(250);trigger(gallery[i].b64,`${sessionTitle}-slide-${gallery[i].savedOrder}.jpg`);}
