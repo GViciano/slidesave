@@ -401,12 +401,12 @@ input[type=text]::placeholder { color: var(--gray-400); }
 
   <!-- Tabs -->
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('presenter')">Presentador</button>
-    <button class="tab" onclick="switchTab('attendee')">Asistente</button>
+    <button class="tab active" onclick="switchTab('attendee')">Asistente</button>
+    <button class="tab" onclick="switchTab('presenter')">Presentador</button>
   </div>
 
   <!-- ════ PRESENTADOR ════ -->
-  <div id="panel-presenter" class="panel active">
+  <div id="panel-presenter" class="panel">
 
     <div id="pres-setup">
       <p class="info">Ponle nombre a tu sesión, comparte tu pantalla y presenta con normalidad. SlideSave detecta cada cambio de slide automáticamente.</p>
@@ -456,7 +456,7 @@ input[type=text]::placeholder { color: var(--gray-400); }
   </div>
 
   <!-- ════ ASISTENTE ════ -->
-  <div id="panel-attendee" class="panel">
+  <div id="panel-attendee" class="panel active">
 
     <div id="att-join">
       <p class="info">Introduce el código de 4 letras que te da el presentador para unirte a la sesión.</p>
@@ -652,21 +652,46 @@ function joinSession(){
     document.getElementById('attSessionName').textContent=sessionTitle;
     const ref=db.ref(`sessions/${val}/attendees`).push();
     ref.set(true); ref.onDisconnect().remove();
-    db.ref(`sessions/${val}/meta/currentSlide`).on('value',snap2=>{
+
+    // Cache local de slides ya recibidas: idx -> b64
+    const slideCache={};
+
+    function showSlide(idx, b64){
+      slideCache[idx]=b64;
+      currentB64=b64; currentSlideIdx=idx;
+      const img=document.getElementById('attCurrent');
+      img.src=b64; img.style.display='block';
+      document.getElementById('attWaiting').style.display='none';
+      const already=gallery.some(g=>g.slideIdx===idx);
+      const btn=document.getElementById('saveSlideBtn');
+      btn.disabled=false;
+      if(already){btn.textContent='✓ Guardada · Volver a capturar';btn.classList.add('saved');}
+      else{btn.textContent='Guardar slide';btn.classList.remove('saved');}
+    }
+
+    // Recibir slides nuevas en tiempo real según llegan
+    db.ref(`sessions/${val}/slides`).on('child_added', snap2=>{
+      const idx=parseInt(snap2.key);
+      const b64=snap2.val();
+      if(!b64)return;
+      slideCache[idx]=b64;
+    });
+
+    // Mostrar la slide que indica el presentador en cada momento
+    db.ref(`sessions/${val}/meta/currentSlide`).on('value', snap2=>{
       const idx=snap2.val();
       if(idx===null||idx<0)return;
-      db.ref(`sessions/${val}/slides/${idx}`).once('value').then(s=>{
-        const b64=s.val(); if(!b64)return;
-        currentB64=b64; currentSlideIdx=idx;
-        const img=document.getElementById('attCurrent');
-        img.src=b64; img.style.display='block';
-        document.getElementById('attWaiting').style.display='none';
-        const already=gallery.some(g=>g.slideIdx===idx);
-        const btn=document.getElementById('saveSlideBtn');
-        btn.disabled=false;
-        if(already){btn.textContent='✓ Guardada · Volver a capturar';btn.classList.add('saved');}
-        else{btn.textContent='Guardar slide';btn.classList.remove('saved');}
-      });
+      if(slideCache[idx]){
+        // Ya la tenemos en caché, mostrar inmediatamente
+        showSlide(idx, slideCache[idx]);
+      } else {
+        // Aún no llegó, esperar a que llegue
+        db.ref(`sessions/${val}/slides/${idx}`).on('value', s=>{
+          const b64=s.val(); if(!b64)return;
+          db.ref(`sessions/${val}/slides/${idx}`).off('value');
+          showSlide(idx, b64);
+        });
+      }
     });
   });
 }
@@ -757,7 +782,7 @@ function delay(ms){return new Promise(r=>setTimeout(r,ms));}
 
 function switchTab(tab){
   document.querySelectorAll('.tab').forEach((t,i)=>
-    t.classList.toggle('active',(tab==='presenter'&&i===0)||(tab==='attendee'&&i===1)));
+    t.classList.toggle('active',(tab==='attendee'&&i===0)||(tab==='presenter'&&i===1)));
   document.getElementById('panel-presenter').classList.toggle('active',tab==='presenter');
   document.getElementById('panel-attendee').classList.toggle('active',tab==='attendee');
 }
